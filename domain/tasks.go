@@ -23,7 +23,7 @@ const (
 )
 
 type Task struct {
-	ID          uuid.UUID    `gorm:"type:uuid;primaryKey" json:"id"`
+	ID          uuid.UUID    `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
 	UserID      uuid.UUID    `gorm:"type:uuid;not null" json:"user_id"`
 	Title       string       `gorm:"type:text;unique;not null" json:"title"`
 	Description string       `gorm:"type:text" json:"description"`
