@@ -15,17 +15,9 @@ func NewUserService(ur domain.UserRepository) *UserService {
 }
 
 func (us UserService) Create(user domain.User) (domain.User, error) {
-	user, err := us.ur.Create(user)
-	if err != nil {
-		return domain.User{}, err
-	}
-	return user, nil
+	return us.ur.Create(user)
 }
 
 func (us UserService) GetByID(userID uuid.UUID) (domain.User, error) {
-	user, err := us.ur.GetByID(userID)
-	if err != nil {
-		return domain.User{}, err
-	}
-	return user, nil
+	return us.ur.GetByID(userID)
 }
