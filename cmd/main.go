@@ -3,6 +3,7 @@ package main
 import (
 	"athenify/app/services"
 	"athenify/config"
+	"athenify/domain"
 	"athenify/persistence"
 	"athenify/presentation"
 	"context"
@@ -27,6 +28,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
+
+	workerPool := domain.NewWorkerPool(5, make(chan domain.Job, 10))
+	workerPool.Start()
 
 	userRepository := persistence.NewUserRepository(db)
 	userService := services.NewUserService(userRepository)
