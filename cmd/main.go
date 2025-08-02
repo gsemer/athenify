@@ -33,9 +33,8 @@ func main() {
 
 	workers, _ := strconv.Atoi(config.GetEnv("WORKERS", "3"))
 	jobs := make(chan domain.Job, 10)
-	results := make(chan domain.Result, 10)
 	wg := &sync.WaitGroup{}
-	workerPool := persistence.NewWorkerPool(workers, jobs, results, wg)
+	workerPool := persistence.NewWorkerPool(workers, jobs, wg)
 	workerPool.Start()
 
 	userRepository := persistence.NewUserRepository(db)
@@ -66,9 +65,8 @@ func main() {
 
 	log.Println("Closing jobs channel")
 	close(jobs)
-	log.Println("Closine results channel")
+
 	wg.Wait()
-	close(results)
 
 	log.Println("Shutting down")
 	server.Shutdown(ctx)
