@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -29,7 +31,11 @@ func main() {
 		log.Fatal("Failed to connect to database: ", err)
 	}
 
-	workerPool := domain.NewWorkerPool(5, make(chan domain.Job, 10))
+	workers, _ := strconv.Atoi(config.GetEnv("WORKERS", "3"))
+	jobs := make(chan domain.Job, 10)
+	results := make(chan domain.Result, 10)
+	wg := &sync.WaitGroup{}
+	workerPool := persistence.NewWorkerPool(workers, jobs, results, wg)
 	workerPool.Start()
 
 	userRepository := persistence.NewUserRepository(db)
@@ -57,6 +63,12 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	log.Println("Closing jobs channel")
+	close(jobs)
+	log.Println("Closine results channel")
+	wg.Wait()
+	close(results)
 
 	log.Println("Shutting down")
 	server.Shutdown(ctx)
