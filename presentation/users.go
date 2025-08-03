@@ -1,7 +1,9 @@
 package presentation
 
 import (
+	"athenify/app/services"
 	"athenify/domain"
+	"athenify/persistence"
 	"encoding/json"
 	"net/http"
 
@@ -17,24 +19,32 @@ func NewUserHandler(us domain.UserService) *UserHandler {
 }
 
 // Create user
-func (uh UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-	// Convert JSON to User structure
-	var user domain.User
-	json.NewDecoder(r.Body).Decode(&user)
+func (uh UserHandler) Create(wp *persistence.WorkerPool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Convert JSON to User structure
+		var user domain.User
+		json.NewDecoder(r.Body).Decode(&user)
 
-	// Create user
-	user, err := uh.us.Create(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+		resultCh := make(chan domain.Result, 1)
+		wp.Jobs <- &services.CreateUserJob{User: user, UserService: uh.us, Result: resultCh}
 
-	// Convert User structure to []byte
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		result := <-resultCh
+		defer close(resultCh)
+
+		// Handle result
+		if result.Error != nil {
+			http.Error(w, result.Error.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Convert User structure to []byte
+		userBytes, err := json.Marshal(result.User)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		w.WriteHeader(http.StatusAccepted)
+		w.Write(userBytes)
 	}
-	w.WriteHeader(http.StatusAccepted)
-	w.Write(userBytes)
 }
 
 func (uh UserHandler) Get(w http.ResponseWriter, r *http.Request) {
