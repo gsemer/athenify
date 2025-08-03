@@ -47,28 +47,36 @@ func (uh UserHandler) Create(wp *persistence.WorkerPool) http.HandlerFunc {
 	}
 }
 
-func (uh UserHandler) Get(w http.ResponseWriter, r *http.Request) {
-	// Get user ID from Header and convert it to UUID format
-	userIDString := r.Header.Get("user_id")
-	if userIDString == "" {
-		http.Error(w, "Unable to find user ID", http.StatusForbidden)
-	}
-	userID, err := uuid.Parse(userIDString)
-	if err != nil {
-		http.Error(w, "Invalid UUID format", http.StatusBadRequest)
-	}
+func (uh UserHandler) Get(wp *persistence.WorkerPool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get user ID from Header and convert it to UUID format
+		userIDString := r.Header.Get("user_id")
+		if userIDString == "" {
+			http.Error(w, "Unable to find user ID", http.StatusForbidden)
+		}
+		userID, err := uuid.Parse(userIDString)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+		}
 
-	// Get user by ID
-	user, err := uh.us.GetByID(userID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+		resultCh := make(chan domain.Result, 1)
+		wp.Jobs <- &services.GetUserJob{UserID: userID, UserService: uh.us, Result: resultCh}
 
-	// Convert User structure to []byte
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		result := <-resultCh
+		defer close(resultCh)
+
+		// Handle result
+		if result.Error != nil {
+			http.Error(w, result.Error.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Convert User structure to []byte
+		userBytes, err := json.Marshal(result.User)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		w.WriteHeader(http.StatusAccepted)
+		w.Write(userBytes)
 	}
-	w.WriteHeader(http.StatusAccepted)
-	w.Write(userBytes)
 }

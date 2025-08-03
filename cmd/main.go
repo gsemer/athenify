@@ -44,7 +44,7 @@ func main() {
 	r := mux.NewRouter()
 	s := r.PathPrefix("/users").Subrouter()
 	s.HandleFunc("/", userHandler.Create(workerPool)).Methods("POST")
-	s.HandleFunc("/", userHandler.Get).Methods("GET")
+	s.HandleFunc("/", userHandler.Get(workerPool)).Methods("GET")
 
 	server := &http.Server{
 		Addr:    "localhost:8000",
