@@ -1,7 +1,7 @@
 package domain
 
 type Job interface {
-	Process() Result
+	Process()
 }
 
 type Result struct {
