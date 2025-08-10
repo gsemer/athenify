@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -18,12 +17,6 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 func (ur UserRepository) Create(user domain.User) (domain.User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("Unable to hash password: %s", err.Error())
-		return domain.User{}, err
-	}
-	user.Password = string(hashedPassword)
 	result := ur.db.Create(&user)
 	if result.Error != nil {
 		log.Printf("Unable to create user: %s", result.Error)
